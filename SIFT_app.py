@@ -50,22 +50,25 @@ class My_App(QtWidgets.QMainWindow):
         return QtGui.QPixmap.fromImage(q_img)
 
     def SLOT_query_camera(self):
-        ret, frame = self._camera_device.read()
-
         # SIFT - Scale Invariant Feature transform
         # RANSAC - Random Sample Consensus - Separate data points into inliers and outliers
 
-        # read the image into a grey scale cv2 image.
-        img = cv2.imread(self.template_path)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # read (and save) the image taken from the camera
+        ret, camera_img = self._camera_device.read()
+        camera_gray = cv2.cvtColor(camera_img, cv2.COLOR_BGR2GRAY)
+        # cv2.imwrite('camera.jpg', camera_ima)
+
+        # read the browser image into a grey scale cv2 image.
+        browser_img = cv2.imread(self.template_path)
+        browser_gray = cv2.cvtColor(browser_img, cv2.COLOR_BGR2GRAY)
 
         # construct a SIFT object
         sift = cv2.SIFT_create()
 
         # detect the keypoint in the image,
         # with mask being None, so every part of the image is being searched
-        keypoint = sift.detect(gray, None)
-        print("the number of key points: ", len(keypoint))
+        keypoint = sift.detect(browser_gray, None)
+        # print("the number of key points: ", len(keypoint))
 
         # draw the keypoint onto the image, show and save it
         # img = cv2.drawKeypoints(gray, keypoint, img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
@@ -73,10 +76,31 @@ class My_App(QtWidgets.QMainWindow):
         # cv2.imwrite('sift_keypoints.jpg', img)
 
         # calculate the descriptor for each key point
-        descriptor, keypoint = sift.compute(gray, keypoint)
+        kp_browser, des_browser = sift.compute(browser_gray, keypoint)
+        kp_camera, des_camera = sift.detectAndCompute(camera_gray, None)
 
+        # FLANN parameters
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+        search_params = dict(checks=50)  # or pass empty dictionary
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        matches = flann.knnMatch(des_browser, des_camera, k=2)
 
-        pixmap = self.convert_cv_to_pixmap(frame)
+        # Need to draw only good matches, so create a mask
+        matches_mask = [[0,0] for i in range(len(matches))]
+        # ratio test as per Lowe's paper
+        for i, (m, n) in enumerate(matches):
+            if m.distance < 0.7 * n.distance:
+                matches_mask[i] = [1, 0]
+
+        draw_params = dict(matchColor=(0, 255, 0),
+                           singlePointColor=(255, 0, 0),
+                           matchesMask=matches_mask,
+                           flags=cv2.DrawMatchesFlags_DEFAULT)
+        matching_img = cv2.drawMatchesKnn(browser_img, kp_browser, camera_img, kp_camera, matches, None, **draw_params)
+        # cv2.imshow("name", matching_img)
+
+        pixmap = self.convert_cv_to_pixmap(matching_img)
         self.live_image_label.setPixmap(pixmap)
 
 
