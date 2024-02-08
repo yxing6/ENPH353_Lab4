@@ -51,10 +51,35 @@ class My_App(QtWidgets.QMainWindow):
 
     def SLOT_query_camera(self):
         ret, frame = self._camera_device.read()
-        # TODO run SIFT on the captured frame
+
+        # SIFT - Scale Invariant Feature transform
+        # RANSAC - Random Sample Consensus - Separate data points into inliers and outliers
+
+        # read the image into a grey scale cv2 image.
+        img = cv2.imread(self.template_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # construct a SIFT object
+        sift = cv2.SIFT_create()
+
+        # detect the keypoint in the image,
+        # with mask being None, so every part of the image is being searched
+        keypoint = sift.detect(gray, None)
+        print("the number of key points: ", len(keypoint))
+
+        # draw the keypoint onto the image, show and save it
+        # img = cv2.drawKeypoints(gray, keypoint, img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # cv2.imshow("name", img)
+        # cv2.imwrite('sift_keypoints.jpg', img)
+
+        # calculate the descriptor for each key point
+        descriptor, keypoint = sift.compute(gray, keypoint)
+
 
         pixmap = self.convert_cv_to_pixmap(frame)
         self.live_image_label.setPixmap(pixmap)
+
+
 
     def SLOT_toggle_camera(self):
         if self._is_cam_enabled:
