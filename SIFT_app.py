@@ -82,12 +82,15 @@ class My_App(QtWidgets.QMainWindow):
         # FLANN parameters
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-        search_params = dict(checks=50)  # or pass empty dictionary
+        search_params = dict()
         flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+        # return the best 2 matches
         matches = flann.knnMatch(des_browser, des_camera, k=2)
 
         # Need to draw only good matches, so create a mask
-        matches_mask = [[0,0] for i in range(len(matches))]
+        matches_mask = [[0, 0] for i in range(len(matches))]
+
         # ratio test as per Lowe's paper
         for i, (m, n) in enumerate(matches):
             if m.distance < 0.7 * n.distance:
@@ -98,12 +101,9 @@ class My_App(QtWidgets.QMainWindow):
                            matchesMask=matches_mask,
                            flags=cv2.DrawMatchesFlags_DEFAULT)
         matching_img = cv2.drawMatchesKnn(browser_img, kp_browser, camera_img, kp_camera, matches, None, **draw_params)
-        # cv2.imshow("name", matching_img)
 
         pixmap = self.convert_cv_to_pixmap(matching_img)
         self.live_image_label.setPixmap(pixmap)
-
-
 
     def SLOT_toggle_camera(self):
         if self._is_cam_enabled:
