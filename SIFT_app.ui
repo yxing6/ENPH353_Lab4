@@ -33,7 +33,7 @@
    <widget class="QPushButton" name="toggle_cam_button">
     <property name="geometry">
      <rect>
-      <x>1500</x>
+      <x>1400</x>
       <y>700</y>
       <width>150</width>
       <height>30</height>
@@ -48,7 +48,7 @@
      <rect>
       <x>100</x>
       <y>100</y>
-      <width>800</width>
+      <width>700</width>
       <height>500</height>
      </rect>
     </property>
@@ -62,9 +62,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>1000</x>
+      <x>850</x>
       <y>100</y>
-      <width>1100</width>
+      <width>1200</width>
       <height>500</height>
      </rect>
     </property>
