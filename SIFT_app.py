@@ -5,6 +5,7 @@ from python_qt_binding import loadUi
 
 import cv2
 import sys
+import numpy as np
 
 
 class My_App(QtWidgets.QMainWindow):
@@ -22,8 +23,8 @@ class My_App(QtWidgets.QMainWindow):
         self.toggle_cam_button.clicked.connect(self.SLOT_toggle_camera)
 
         self._camera_device = cv2.VideoCapture(self._cam_id)
-        self._camera_device.set(3, 320)
-        self._camera_device.set(4, 240)
+        self._camera_device.set(3, 320*2)
+        self._camera_device.set(4, 240*2)
 
         # Timer used to trigger the camera
         self._timer = QtCore.QTimer(self)
@@ -71,9 +72,9 @@ class My_App(QtWidgets.QMainWindow):
         # print("the number of key points: ", len(keypoint))
 
         # draw the keypoint onto the image, show and save it
-        # img = cv2.drawKeypoints(gray, keypoint, img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        # cv2.imshow("name", img)
-        # cv2.imwrite('sift_keypoints.jpg', img)
+        # browser_img = cv2.drawKeypoints(gray, keypoint, browser_img, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # cv2.imshow("name", browser_img)
+        # cv2.imwrite('keypoints detected.jpg', browser_img)
 
         # calculate the descriptor for each key point
         kp_browser, des_browser = sift.compute(browser_gray, keypoint)
@@ -90,17 +91,33 @@ class My_App(QtWidgets.QMainWindow):
 
         # Need to draw only good matches, so create a mask
         matches_mask = [[0, 0] for i in range(len(matches))]
+        homography_mask = []
 
         # ratio test as per Lowe's paper
         for i, (m, n) in enumerate(matches):
             if m.distance < 0.7 * n.distance:
                 matches_mask[i] = [1, 0]
+                homography_mask.append(m)
 
+        # draw all pairs of good matching between browser image and camera image
         draw_params = dict(matchColor=(0, 255, 0),
                            singlePointColor=(255, 0, 0),
                            matchesMask=matches_mask,
                            flags=cv2.DrawMatchesFlags_DEFAULT)
         matching_img = cv2.drawMatchesKnn(browser_img, kp_browser, camera_img, kp_camera, matches, None, **draw_params)
+
+        # draw homography in the camera image
+        query_pts = np.float32([kp_browser[m.queryIdx].pt for m in homography_mask]).reshape(-1, 1, 2)
+        train_pts = np.float32([kp_camera[m.trainIdx].pt for m in homography_mask]).reshape(-1, 1, 2)
+        matrix, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
+
+        # Perspective transform
+        h, w = browser_img.shape[0], browser_img.shape[1]
+        pts = np.float32([[0, 0], [0, h], [w, h], [w, 0]]).reshape(-1, 1, 2)
+        dst = cv2.perspectiveTransform(pts, matrix)
+
+        homography_img = cv2.polylines(camera_img, [np.int32(dst)], True, (0, 0, 255), 4)
+        cv2.imshow("Homography", homography_img)
 
         pixmap = self.convert_cv_to_pixmap(matching_img)
         self.live_image_label.setPixmap(pixmap)
