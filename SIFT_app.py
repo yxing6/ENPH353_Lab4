@@ -29,7 +29,7 @@ class My_App(QtWidgets.QMainWindow):
         # Timer used to trigger the camera
         self._timer = QtCore.QTimer(self)
         self._timer.timeout.connect(self.SLOT_query_camera)
-        self._timer.setInterval(1000 / self._cam_fps)
+        self._timer.setInterval(100 / self._cam_fps)  # 100 to read quicker
 
     def SLOT_browse_button(self):
         dlg = QtWidgets.QFileDialog()
@@ -57,7 +57,7 @@ class My_App(QtWidgets.QMainWindow):
         # read (and save) the image taken from the camera
         ret, camera_img = self._camera_device.read()
         camera_gray = cv2.cvtColor(camera_img, cv2.COLOR_BGR2GRAY)
-        # cv2.imwrite('camera.jpg', camera_ima)
+        # cv2.imwrite('camera.jpg', camera_img)
 
         # read the browser image into a grey scale cv2 image.
         browser_img = cv2.imread(self.template_path)
